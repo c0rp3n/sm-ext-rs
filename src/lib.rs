@@ -159,6 +159,7 @@ pub mod types {
     pub type IFeatureProviderPtr = *mut *mut IFeatureProviderVtable;
     pub type IPluginRuntimePtr = *mut *mut IPluginRuntimeVtable;
     pub type IPluginContextPtr = *mut *mut IPluginContextVtable;
+    pub type IGamePlayerPtr = *mut *mut IGamePlayerVtable;
 }
 
 pub(self) mod vtables {
@@ -295,6 +296,39 @@ pub(self) mod vtables {
         _BlamePluginError: fn(),
         _CreateFrameIterator: fn(),
         _DestroyFrameIterator: fn(),
+    }
+
+    #[vtable(IGamePlayerPtr)]
+    pub struct IGamePlayerVtable {
+        pub GetName: fn() -> *const c_char,
+        pub GetIPAddress: fn() -> *const c_char,
+        pub GetAuthString: fn(bool) -> *const c_char,
+        _GetEdict: fn(),
+        pub IsInGame: fn() -> bool,
+        pub IsConnected: fn() -> bool,
+        pub IsFakeClient: fn() -> bool,
+        _GetAdminId: fn(),
+        _SetAdminId: fn(),
+        pub GetUserId: fn() -> c_int,
+        pub GetLanguageId: fn() -> c_uint,
+        _GetPlayerInfo: fn(),
+        _RunAdminCacheChecks: fn(),
+        _NotifyPostAdminChecks: fn(),
+        pub GetSerial : fn() -> c_uint,
+        pub IsAuthorized : fn() -> bool,
+        pub Kick : fn(*const c_char) -> (),
+        pub IsInKickQueue : fn() -> bool,
+        pub MarkAsBeingKicked : fn() -> (),
+        pub SetLanguageId : fn(c_uint) -> (),
+        pub IsSourceTV : fn() -> bool,
+        pub IsReplay : fn() -> bool,
+        pub GetSteamAccountID : fn(bool) -> c_uint,
+        pub GetIndex : fn() -> c_int,
+        pub PrintToConsole : fn(*const c_char) -> (),
+        pub ClearAdmin : fn() -> (),
+        pub GetSteamId64 : fn(bool) -> u64,
+        pub GetSteam2Id : fn(bool) -> *const c_char,
+        pub GetSteam3Id : fn(bool) -> *const c_char,
     }
 }
 
@@ -641,6 +675,139 @@ mod IPluginContextApi {
                 } else {
                     Err(res)
                 }
+            }
+        }
+    }
+}
+
+pub use IGamePlayerApi::*;
+mod IGamePlayerApi {
+    use super::types::{IGamePlayerPtr};
+    use std::ffi::{CStr, CString};
+    use std::os::raw::c_char;
+    use std::str::Utf8Error;
+
+    #[derive(Debug)]
+    pub struct IGamePlayer(pub IGamePlayerPtr);
+
+    impl IGamePlayer {
+        pub fn get_name(&self) -> Result<&str, Utf8Error> {
+            unsafe {
+                let addr: *const c_char = ((**self.0).GetName)(self.0);
+
+                CStr::from_ptr(addr).to_str()
+            }
+        }
+
+        pub fn get_ip_address(&self) -> Result<&str, Utf8Error> {
+            unsafe {
+                let addr: *const c_char = ((**self.0).GetIPAddress)(self.0);
+
+                CStr::from_ptr(addr).to_str()
+            }
+        }
+
+        pub fn get_auth_string(&self, validated : bool) -> Result<&str, Utf8Error> {
+            unsafe {
+                let addr: *const c_char = ((**self.0).GetAuthString)(self.0, validated);
+
+                CStr::from_ptr(addr).to_str()
+            }
+        }
+
+        pub fn is_in_game(&self) -> bool {
+            unsafe { ((**self.0).IsInGame)(self.0) }
+        }
+
+        pub fn is_connected(&self) -> bool {
+            unsafe { ((**self.0).IsConnected)(self.0) }
+        }
+
+        pub fn is_fake_client(&self) -> bool {
+            unsafe { ((**self.0).IsFakeClient)(self.0) }
+        }
+
+        pub fn get_user_id(&self) -> i32 {
+            unsafe { ((**self.0).GetUserId)(self.0) }
+        }
+
+        pub fn get_language_id(&self) -> u32 {
+            unsafe { ((**self.0).GetLanguageId)(self.0) }
+        }
+
+        pub fn get_serial(&self) -> u32 {
+            unsafe { ((**self.0).GetSerial)(self.0) }
+        }
+
+        pub fn is_authorized(&self) -> bool {
+            unsafe { ((**self.0).IsAuthorized)(self.0) }
+        }
+
+        pub fn kick(&self, message : &str) -> () {
+            unsafe {
+                let c_message = CString::new(message).unwrap();
+
+                ((**self.0).Kick)(self.0, c_message.as_ptr())
+            }
+        }
+
+        pub fn is_in_kick_queue(&self) -> bool {
+            unsafe { ((**self.0).IsInKickQueue)(self.0) }
+        }
+
+        pub fn mark_as_being_kicked(&self) -> () {
+            unsafe { ((**self.0).MarkAsBeingKicked)(self.0) }
+        }
+
+        pub fn set_language_id(&self, id : u32) -> () {
+            unsafe { ((**self.0).SetLanguageId)(self.0, id) }
+        }
+
+        pub fn is_source_tv(&self) -> bool {
+            unsafe { ((**self.0).IsSourceTV)(self.0) }
+        }
+
+        pub fn is_replay(&self) -> bool {
+            unsafe { ((**self.0).IsReplay)(self.0) }
+        }
+
+        pub fn get_steam_account_id(&self, validated : bool) -> u32 {
+            unsafe { ((**self.0).GetSteamAccountID)(self.0, validated) }
+        }
+
+        pub fn get_index(&self) -> i32 {
+            unsafe { ((**self.0).GetIndex)(self.0) }
+        }
+
+        pub fn print_to_console(&self, message : &str) -> () {
+            unsafe {
+                let c_message = CString::new(message).unwrap();
+
+                ((**self.0).PrintToConsole)(self.0, c_message.as_ptr())
+            }
+        }
+
+        pub fn clear_admin(&self) -> () {
+            unsafe { ((**self.0).ClearAdmin)(self.0) }
+        }
+
+        pub fn get_steamid_64(&self, validated : bool) -> u64 {
+            unsafe { ((**self.0).GetSteamId64)(self.0, validated) }
+        }
+
+        pub fn get_steamid_2(&self, validated : bool) -> Result<&str, Utf8Error> {
+            unsafe {
+                let addr: *const c_char = ((**self.0).GetSteam2Id)(self.0, validated);
+
+                CStr::from_ptr(addr).to_str()
+            }
+        }
+
+        pub fn get_steamid_3(&self, validated : bool) -> Result<&str, Utf8Error> {
+            unsafe {
+                let addr: *const c_char = ((**self.0).GetSteam3Id)(self.0, validated);
+
+                CStr::from_ptr(addr).to_str()
             }
         }
     }
